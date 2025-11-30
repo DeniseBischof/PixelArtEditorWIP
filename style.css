@@ -1,0 +1,187 @@
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#222;background:#f7f7f9}
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+
+#left-preview { position: sticky; top: 110px; align-self: start; background: #f0f2f5; border-right: 1px solid #ddd; padding: .75rem; }
+
+#left-preview summary{font-weight:600}
+#preview-canvas{display:block;margin:.5rem auto;border:2px solid #222;image-rendering:pixelated;background:#9BBC0F}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid #eee;background:#fff;position:sticky;top:0;z-index:5}
+.workspace{display:grid;grid-template-columns:1fr 360px;gap:1rem;padding:1rem}
+.canvas-wrap{display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #eee;border-radius:14px;min-height:520px}
+#sprite-canvas{image-rendering:pixelated;background:
+  linear-gradient(45deg,#fafafa,#f7f7f9);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04) inset}
+
+.right-pane details{background:#fff;border:1px solid #eee;border-radius:12px;margin-bottom:12px;padding:.5rem .75rem}
+.right-pane summary{cursor:pointer;font-weight:600}
+.row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:.5rem 0}
+.tool-row{display:flex;gap:.35rem;flex-wrap:wrap}
+.tool{width:36px;height:36px;border:1px solid #ccc;border-radius:10px;background:#f7f7f9;display:grid;place-items:center;cursor:pointer}
+.tool.active{outline:2px solid #222}
+.ico{width:18px;height:18px;display:block;background:#222;mask-size:contain;mask-repeat:no-repeat;mask-position:center}
+.ico-pencil{mask-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path fill=%22black%22 d=%22M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.0 1.0 0 0 0 0-1.41l-2.34-2.34a1.0 1.0 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z%22/></svg>');}
+.ico-eraser{mask-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path d=%22M16.24 3.56 21 8.32 10.66 18.66H6L2 14.66 12.34 4.32a3 3 0 0 1 3.9-.76zM6 20h14v2H6z%22/></svg>');}
+.ico-fill{mask-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path d=%22M5 18c0 1.66 3.58 3 8 3s8-1.34 8-3-3.58-3-8-3-8 1.34-8 3zm12.79-7.21-6.36-6.36-9.9 9.9 6.36 6.36 9.9-9.9zM7.05 14.19 4.88 12l7.07-7.07 2.17 2.17L7.05 14.19z%22/></svg>');}
+.ico-picker{mask-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path d=%22M17.7 7.7 13 12.41V15h-2v-1.59L6.3 7.7 7.7 6.3 12 10.59 16.3 6.3l1.4 1.4z%22/></svg>');}
+.ico-rect{mask-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><rect x=%224%22 y=%224%22 width=%2216%22 height=%2216%22 stroke=%22black%22 fill=%22black%22/></svg>');}
+.ico-lasso{mask-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path d=%22M4 10c0-3.31 3.58-6 8-6s8 2.69 8 6-3.58 6-8 6c-.9 0-1.76-.1-2.56-.29L7 18v-2.5C5.2 14.1 4 12.19 4 10z%22/></svg>');}
+.ico-move{mask-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path d=%22M12 2l4 4h-3v4h4V7l4 5-4 5v-3h-4v4h3l-4 4-4-4h3v-4H7v3l-4-5 4-5v3h4V6H8l4-4z%22/></svg>');}
+
+.custom-palette{display:grid;grid-template-columns:repeat(8,28px);gap:6px;margin:.5rem 0}
+.custom-palette button{width:28px;height:28px;border-radius:6px;border:1px solid #999;cursor:pointer;position:relative}
+.custom-palette button.active{outline:2px solid #222}
+
+.palette-color.transparent::after{
+  content:'';position:absolute;inset:0;
+  background: repeating-linear-gradient(45deg, rgba(255,0,0,.9) 0 2px, transparent 2px 6px);
+  pointer-events:none;
+}
+
+.frames ul{list-style:none;padding:0;margin:.5rem 0;display:flex;gap:.5rem;flex-wrap:wrap}
+.frames li{border:1px solid #ccc;border-radius:8px;padding:4px;cursor:grab;display:grid;gap:4px}
+.frames li.active{outline:2px solid #007acc}
+.frames li canvas{image-rendering:pixelated;border:1px solid #ddd;border-radius:6px;background:#fff}
+
+.chip{border:1px solid #ccc;background:#f7f7f9;border-radius:999px;padding:.25rem .6rem;cursor:pointer}
+.export-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
+input#export-name{flex:1;min-width:160px;border:1px solid #ccc;border-radius:8px;padding:.4rem .5rem}
+
+@media (max-width: 960px){
+  .app{grid-template-columns:1fr}
+  #left-preview{position:relative;top:auto;border-right:none;border-bottom:1px solid #ddd}
+  .workspace{grid-template-columns:1fr}
+  .right-pane details{padding:.5rem}
+  /* mobile: default collapsed except editor + mini palette (leave logic to HTML if needed) */
+}
+
+/* === Dark Mode Overrides === */
+body.dark-mode {
+  background:#2b2b2b;
+  color:#eee;
+}
+
+body.dark-mode .topbar {
+  background:#333;
+  border-bottom:1px solid #555;
+}
+
+body.dark-mode .workspace {
+  background:#2b2b2b;
+}
+
+body.dark-mode .canvas-wrap {
+  background:#3a3a3a;
+  border-color:#555;
+}
+
+body.dark-mode #sprite-canvas {
+  background:linear-gradient(45deg,#2f2f2f,#3a3a3a);
+  box-shadow:0 1px 2px rgba(255,255,255,.04) inset;
+}
+
+body.dark-mode #left-preview {
+  background:#3a3a3a;
+  border-right:1px solid #555;
+}
+
+body.dark-mode .right-pane details {
+  background:#3a3a3a;
+  border-color:#555;
+}
+
+body.dark-mode .frames li {
+  border-color:#555;
+  background:#444;
+}
+
+body.dark-mode .frames li canvas {
+  background:#2b2b2b;
+  border-color:#666;
+}
+
+body.dark-mode .tool {
+  background:#444;
+  border-color:#666;
+}
+
+body.dark-mode .tool.active {
+  outline:2px solid #eee;
+}
+
+body.dark-mode .ico {
+  background:#eee;
+}
+
+body.dark-mode .chip {
+  background:#444;
+  border-color:#666;
+  color:#eee;
+}
+
+body.dark-mode .export-row input#export-name {
+  background:#444;
+  border-color:#666;
+  color:#eee;
+}
+
+body.dark-mode .custom-palette button {
+  border-color:#666;
+}
+
+.row.preview-zoom { justify-content: center; }
+
+/* Light mode: Topbar = gleiche Farbe wie linkes Panel */
+.topbar{
+  background:#f0f2f5;         /* match #left-preview */
+  border-bottom:1px solid #ddd;
+}
+
+/* Dark mode: beide Flächen exakt gleich */
+body.dark-mode #left-preview,
+body.dark-mode .topbar{
+  background:#2f3136;
+}
+
+body.dark-mode .topbar{
+  border-bottom:1px solid #3a3f44;
+}
+body.dark-mode #left-preview{
+  border-right-color:#3a3f44;
+}
+
+/* gleiche Farbe für linke Spalte + Panel (light & dark) */
+:root { --left-panel-bg: #f0f2f5; }          /* Light */
+body.dark-mode { --left-panel-bg: #2f3136; } /* Dark */
+
+/* Panel selbst */
+#left-preview { background: var(--left-panel-bg); }
+
+/* Linke Grid-Spalte einfärben (entspricht 280px in deiner grid-template-columns) */
+.app{
+  background: linear-gradient(var(--left-panel-bg), var(--left-panel-bg))
+              left top / 280px 100% no-repeat;
+}
+
+/* (Optional) auf Mobile die Spaltenfärbung aus, damit nichts seltsam aussieht */
+@media (max-width: 960px){
+  .app{ background: none; }
+}
+
+#layers-list{list-style:none;margin:.5rem 0;padding:0;display:flex;flex-direction:column;gap:.4rem}
+#layers-list .layer-item{display:flex;align-items:center;gap:.5rem;border:1px solid #ccc;border-radius:8px;padding:.25rem .5rem;cursor:pointer}
+#layers-list .layer-item.active{outline:2px solid #007acc}
+#layers-list .layer-item.dim{opacity:.55}
+#layers-list .name{flex:1}
+#layers-list .handle{cursor:grab;user-select:none}
+
+/* Zoom-Controls oben rechts auf der Malfläche */
+.canvas-wrap { position: relative; } /* Ergänzung, Rest unverändert */
+.zoom-controls{
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}

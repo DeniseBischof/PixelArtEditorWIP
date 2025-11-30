@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GB/GBC Sprite Editor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Sticky left preview panel -->
+    <aside id="left-preview">
+      <details open id="preview-panel">
+        <summary>Preview (Game Boy 160×144)</summary>
+        <div class="preview-controls">
+          <label>BG <input type="color" id="preview-bg" value="#9BBC0F" /></label>
+          <button type="button" id="preview-preset-1" class="chip">GB</button>
+          <button type="button" id="preview-preset-2" class="chip">Dark</button>
+          <button type="button" id="preview-preset-3" class="chip">Chk</button>
+        </div>
+        <canvas id="preview-canvas" width="160" height="144"></canvas>
+<div class="row preview-zoom">
+  <button id="zoom-1x" class="chip" type="button">1×</button>
+  <button id="zoom-1-5x" class="chip" type="button">1.5×</button>
+  <button id="zoom-2x" class="chip" type="button">2×</button>
+</div>
+      </details>
+
+      <details open id="help-panel">
+        <summary>Info</summary>
+        <p class="help">
+          Game Boy Color can display 32 background colours and 24 sprite colours per scanline (56 total).<br>
+          Each sprite palette reserves its first colour for transparency.<br>
+          Screen resolution is 160×144 pixels (10:9 aspect).
+        </p>
+      </details>
+<details open>
+  <summary>Layers</summary>
+  <ul id="layers-list"></ul>
+  <div class="row">
+    <button id="add-layer" class="chip" type="button">+ Layer</button>
+    <button id="dup-layer" class="chip" type="button">Dup</button>
+    <button id="del-layer" class="chip" type="button">Del</button>
+  </div>
+</details>
+
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <h1>GB/GBC Sprite Editor</h1>
+        <div class="theme">
+          <label>Theme
+            <button id="theme-toggle">🌙 Dark</button>
+          </label>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <div class="canvas-wrap">
+          <canvas id="sprite-canvas" width="512" height="512"></canvas>
+<div class="zoom-controls">
+  <button id="edit-zoom-out" class="chip" type="button">−</button>
+  <button id="edit-zoom-in"  class="chip" type="button">+</button>
+</div>
+        </div>
+        <aside class="right-pane">
+          <details open>
+            <summary>Tools</summary>
+            <div id="tool-buttons" class="tool-row">
+              <button class="tool active" id="tool-pencil" data-tool="pencil" title="Pencil">
+                <span class="ico ico-pencil"></span>
+              </button>
+              <button class="tool" id="tool-eraser" data-tool="eraser" title="Eraser">
+                <span class="ico ico-eraser"></span>
+              </button>
+              <button class="tool" id="tool-fill" data-tool="fill" title="Fill">
+                <span class="ico ico-fill"></span>
+              </button>
+              <button class="tool" id="tool-picker" data-tool="picker" title="Picker">
+                <span class="ico ico-picker"></span>
+              </button>
+              <button class="tool" id="tool-rect" data-tool="rect-select" title="Rect Select">
+                <span class="ico ico-rect"></span>
+              </button>
+              <button class="tool" id="tool-lasso" data-tool="lasso-select" title="Lasso Select">
+                <span class="ico ico-lasso"></span>
+              </button>
+              <button class="tool" id="tool-move" data-tool="move" title="Move Selection">
+                <span class="ico ico-move"></span>
+              </button>
+            </div>
+          </details>
+
+          <details open>
+            <summary>Size</summary>
+            <div class="row">
+              <label>Width
+                <select id="width-select"></select>
+              </label>
+              <label>Height
+                <select id="height-select"></select>
+              </label>
+            </div>
+          </details>
+
+          <details open>
+            <summary>Colors</summary>
+            <div class="row">
+              <label>Palette
+                <select id="palette-select"></select>
+              </label>
+            </div>
+            <div class="palette-size-control">
+              <label>
+                <span id="label-palette-size">Palette size:</span>
+                <input type="number" id="palette-size" value="4" min="4" max="64" />
+              </label>
+            </div>
+            <div id="palette-colors" class="custom-palette"></div>
+
+            <h3>Upload Palette</h3>
+            <div class="upload-controls">
+              <input type="file" id="palette-upload" accept="image/*" />
+              <button type="button" id="apply-upload" class="chip">Use Image Palette</button>
+            </div>
+
+            <p class="palette-info" id="palette-info">
+              The first colour is conceptually transparent on hardware. Only three visible colours per 8×8 tile.
+            </p>
+          </details>
+
+          <details open>
+            <summary>Animation</summary>
+            <div class="row">
+              <label>FPS <input type="number" id="fps-input" value="6" min="1" max="60" /></label>
+              <button id="play-animation" class="chip">Play</button>
+            </div>
+            <div class="frames">
+              <ul id="frames-list"></ul>
+              <div class="row">
+                <button id="add-frame" class="chip">Add Frame</button>
+                <button id="duplicate-frame" class="chip">Duplicate</button>
+                <button id="delete-frame" class="chip">Delete</button>
+                <label><input type="checkbox" id="onion-skin" /> Onion Skin</label>
+              </div>
+            </div>
+          </details>
+
+          <details open>
+            <summary>Export</summary>
+            <div class="export-row">
+              <input id="export-name" placeholder="sprite_name" value="sprite" />
+              <button id="export-png" class="chip">PNG</button>
+              <button id="export-spritesheet" class="chip">Sprite Sheet</button>
+              <button id="export-all-frames" class="chip">All Frames</button>
+              <button id="export-ch" class="chip">C/H</button>
+              <button id="export-all-ch" class="chip">All C/H</button>
+              <button id="export-ch-spritesheet" class="chip">C/H Spritesheet</button>
+            </div>
+          </details>
+
+<details open>
+  <summary>Import</summary>
+  <div class="row">
+    <input type="file" id="import-png" accept="image/png">
+    <button id="import-png-run" class="chip" type="button">Upload</button>
+  </div>
+  <div class="row">
+    <input type="file" id="import-c" accept=".c,.txt">
+    <button id="import-c-run" class="chip" type="button">Upload</button>
+  </div>
+</details>
+
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <script src="jszip.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
