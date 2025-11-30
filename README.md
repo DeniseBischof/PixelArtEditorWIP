@@ -1,6 +1,6 @@
 # PixelArtEditorWIP 🎨🧊
 
-A small HTML-based pixel art / sprite editor that runs entirely in the browser.  
+A small HTML-based pixel art/sprite editor that runs entirely in the browser.  
 Perfect for quickly drawing icons, sprites, or tiles - no installation needed.
 
 🔗 **Live demo:**  
@@ -12,10 +12,10 @@ https://denisebischof.github.io/PixelArtEditorWIP/
 
 - 🖱️ Draw directly on a pixel grid in the browser  
 - 🎨 Simple color selection UI  
-- 🧹 Erase / overwrite pixels  
+- 🧹 Erase/overwrite pixels  
 - 💾 (WIP) Export / saving options for pixel art
 
-> Note: This project is **work in progress** – things will change and improve over time. Hopefully ✨
+> Note: This project is **work in progress**, things will change and improve over time. Hopefully ✨
 
 ---
 
