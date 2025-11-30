@@ -33,5 +33,4 @@ https://denisebischof.github.io/PixelArtEditorWIP/
 
 ```bash
 git clone https://github.com/denisebischof/PixelArtEditorWIP.git
-cd PixelArtEditorWIP
-# Then open index.html in your browser
+# Just clone it and open the index.html in your browser :)
