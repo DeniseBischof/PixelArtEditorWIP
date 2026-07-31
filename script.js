@@ -179,6 +179,35 @@ function createFrame(w,h){
 }
 function copyFrame(f){ return f.map(row=>row.slice()); }
 
+// One call to repaint everything. Individual renders are independent, so
+// order does not matter — this just kills the repeated 3–4 line clusters.
+function refreshAll(){
+  render(); refreshFramesThumbnails(); drawGBPreview(); refreshLayersUI();
+}
+
+// Move a frame AND its layer stack together (frames, layersPerFrame and
+// activeLayerIndexPerFrame must stay index-aligned).
+function moveFrame(from, to){
+  if(from===to) return;
+  if(from<0 || to<0 || from>=frames.length || to>=frames.length) return;
+  pushHistory();
+  const f  = frames.splice(from,1)[0];
+  const ls = layersPerFrame.splice(from,1)[0];
+  const ai = activeLayerIndexPerFrame.splice(from,1)[0];
+  frames.splice(to,0,f);
+  layersPerFrame.splice(to,0,ls);
+  activeLayerIndexPerFrame.splice(to,0,ai);
+  currentFrameIndex = to;
+  refreshAll();
+}
+
+// True when frame i exists and every layer pixel is empty (-1).
+function isFrameEmpty(i){
+  const layers = layersPerFrame[i];
+  if(!layers) return true;
+  return layers.every(L => L.grid.every(row => row.every(v => v < 0)));
+}
+
 function initSizeSelectors(){
   const sizes=[8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128];
   widthSelect.innerHTML=''; heightSelect.innerHTML='';
@@ -212,7 +241,10 @@ function changeGridSize(w,h){
   }
 
   currentFrameIndex = Math.min(currentFrameIndex, frames.length-1);
-  render(); refreshFramesThumbnails(); drawGBPreview(); refreshLayersUI();
+  // keep the dropdowns in sync when the size changes programmatically (import)
+  if ([...widthSelect.options].some(o=>+o.value===gridWidth))  widthSelect.value  = gridWidth;
+  if ([...heightSelect.options].some(o=>+o.value===gridHeight)) heightSelect.value = gridHeight;
+  refreshAll();
 }
 
 widthSelect.addEventListener('change',()=>changeGridSize(widthSelect.value,heightSelect.value));
@@ -414,11 +446,11 @@ document.querySelectorAll('#tool-buttons .tool').forEach(btn=>{
 });
 
 if(addLayerBtn){
-  pushHistory();
   addLayerBtn.addEventListener('click', ()=>{
     ensureFrameLayers(currentFrameIndex);
     const layers = layersPerFrame[currentFrameIndex];
     if(layers.length >= MAX_LAYERS) return;
+    pushHistory();
     const nl = { grid:createFrame(gridWidth,gridHeight), visible:true, name:`Layer ${layers.length+1}` };
     layers.push(nl);
     setActiveLayerIndex(layers.length-1);
@@ -466,7 +498,7 @@ function refreshFramesThumbnails(){
   frames.forEach((f, index)=>{
     const li=document.createElement('li'); li.dataset.index=index; li.draggable=true;
     const c=document.createElement('canvas'); c.width=gridWidth; c.height=gridHeight;
-    const cctx=c.getContext('2d'); const off=frameToCanvas(f, currentPalette, 1, true); // 1x
+    const cctx=c.getContext('2d'); const off=frameToCanvas(f, currentPalette, 1); // 1x
     cctx.drawImage(off,0,0);
     li.appendChild(c);
     const cap=document.createElement('div'); cap.textContent = `#${index+1}`; li.appendChild(cap);
@@ -476,13 +508,11 @@ function refreshFramesThumbnails(){
     li.addEventListener('dragover',(ev)=>{ ev.preventDefault(); li.style.borderColor='#007acc'; });
     li.addEventListener('dragleave',()=>{ li.style.borderColor=''; });
     li.addEventListener('drop',(ev)=>{
-      ev.preventDefault();
+      ev.preventDefault(); li.style.borderColor='';
       const from = parseInt(ev.dataTransfer.getData('text/plain'),10);
       const to = index;
-      if(from===to) return;
-      const item = frames.splice(from,1)[0];
-      frames.splice(to,0,item);
-      currentFrameIndex=to; refreshFramesThumbnails(); render(); drawGBPreview();
+      if(from===to || Number.isNaN(from)) return;
+      moveFrame(from, to);
     });
     framesList.appendChild(li);
   });
@@ -565,7 +595,7 @@ document.addEventListener('keydown', (e)=>{
 
 
 // render
-function frameToCanvas(frame, palette, scale=cellSize, thumb=false){
+function frameToCanvas(frame, palette, scale=cellSize){
   const w=frame[0].length, h=frame.length;
   const off=document.createElement('canvas');
   off.width = w*scale; off.height=h*scale;
@@ -818,17 +848,6 @@ function rgbFromHex(hex){
   const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
   return [r,g,b];
 }
-function nearestIndex(color, candidates){
-  // naive euclidean
-  let best=0, bestd=Infinity;
-  for(let i=0;i<candidates.length;i++){
-    const [r1,g1,b1]=color, [r2,g2,b2]=candidates[i];
-    const d=(r1-r2)*(r1-r2)+(g1-g2)*(g1-g2)+(b1-b2)*(b1-b2);
-    if(d<bestd){bestd=d; best=i;}
-  }
-  return best;
-}
-
 function encodeTiles2bpp(frame){
   const tiles=[];
   const tileMaps=[]; // pro Tile 4 Bytes: local[0..3] -> globalPaletteIndex, 255 = transparent/unused
@@ -1244,6 +1263,26 @@ function mapColorToPalette(hex){
   return best;
 }
 
+// --- shared import helpers ---
+// Append an imported grid as a new frame (with its own single layer).
+function appendImportedFrame(grid){
+  addFrame();                       // creates the frame + a default layer
+  ensureFrameLayers(currentFrameIndex);
+  layersPerFrame[currentFrameIndex][getActiveLayerIndex()].grid = grid;
+  composeFrame(currentFrameIndex);
+}
+// Drop the stray blank frame the editor auto-creates, but only if the
+// canvas was still pristine (a single empty frame) when the import began.
+function finishImport(pristineBefore){
+  if(pristineBefore && frames.length > 1 && isFrameEmpty(0)){
+    frames.splice(0,1);
+    layersPerFrame.splice(0,1);
+    activeLayerIndexPerFrame.splice(0,1);
+  }
+  currentFrameIndex = Math.min(currentFrameIndex, frames.length-1);
+  refreshAll();
+}
+
 if (importPngBtn) {
   importPngBtn.addEventListener('click', ()=>{
     const file = importPngInput && importPngInput.files && importPngInput.files[0];
@@ -1264,6 +1303,8 @@ if (importPngBtn) {
       const cx=c.getContext('2d'); cx.imageSmoothingEnabled=false;
       cx.drawImage(img,0,0);
       const {data, width:W, height:H} = cx.getImageData(0,0,c.width,c.height);
+
+      const pristine = (frames.length===1 && isFrameEmpty(0));
 
       let framesW = gridWidth, framesH = gridHeight;
       let count = 1, layout = 'single';
@@ -1297,32 +1338,14 @@ if (importPngBtn) {
       }
 
       if (layout === 'h'){
-        for(let i=0;i<count;i++){
-          const g = readFrameToGrid(i*framesW, 0);
-          // neuen Frame + Layer anlegen und Grid einsetzen
-          addFrame(); // erzeugt 1 Layer & composited
-          ensureFrameLayers(currentFrameIndex);
-          layersPerFrame[currentFrameIndex][getActiveLayerIndex()].grid = g;
-          composeFrame(currentFrameIndex);
-        }
+        for(let i=0;i<count;i++) appendImportedFrame(readFrameToGrid(i*framesW, 0));
       } else if (layout === 'v'){
-        for(let i=0;i<count;i++){
-          const g = readFrameToGrid(0, i*framesH);
-          addFrame();
-          ensureFrameLayers(currentFrameIndex);
-          layersPerFrame[currentFrameIndex][getActiveLayerIndex()].grid = g;
-          composeFrame(currentFrameIndex);
-        }
+        for(let i=0;i<count;i++) appendImportedFrame(readFrameToGrid(0, i*framesH));
       } else {
-        const g = readFrameToGrid(0,0);
-        // aktuellen Frame überschreiben? → wir hängen als neuen an, ist am sichersten
-        addFrame();
-        ensureFrameLayers(currentFrameIndex);
-        layersPerFrame[currentFrameIndex][getActiveLayerIndex()].grid = g;
-        composeFrame(currentFrameIndex);
+        appendImportedFrame(readFrameToGrid(0,0));
       }
 
-      refreshFramesThumbnails(); refreshLayersUI(); render(); drawGBPreview();
+      finishImport(pristine);
       URL.revokeObjectURL(url);
     };
     img.onerror = ()=> URL.revokeObjectURL(url);
@@ -1414,8 +1437,8 @@ if (importCBtn){
 
       // NEU: optionale Meta-Arrays
       const mMap  = text.match(/const\s+unsigned\s+char\s+\w+_tile_map\[\]\s*=\s*\{([\s\S]*?)\};/);
-      const mW    = text.match(/const\s+unsigned\s+short\s+\w+_frame_width\[\]\s*=\s*\{([\\s\S]*?)\};/);
-      const mH    = text.match(/const\s+unsigned\s+short\s+\w+_frame_height\[\]\s*=\s*\{([\\s\S]*?)\};/);
+      const mW    = text.match(/const\s+unsigned\s+short\s+\w+_frame_width\[\]\s*=\s*\{([\s\S]*?)\};/);
+      const mH    = text.match(/const\s+unsigned\s+short\s+\w+_frame_height\[\]\s*=\s*\{([\s\S]*?)\};/);
       const mPal  = text.match(/const\s+unsigned\s+int\s+\w+_palette_rgb\[\]\s*=\s*\{([\s\S]*?)\};/);
 
       const tileMap = mMap ? new Uint8Array(parseNumList(mMap[1]).map(n=>n&0xFF)) : null;
@@ -1445,28 +1468,27 @@ if (importCBtn){
         if (maxIdx >= 0){ ensurePaletteLen(maxIdx+1); paletteSizeInput.value=currentPalette.length; refreshPaletteColors(); }
       }
 
+      const pristine = (frames.length===1 && isFrameEmpty(0));
+
+      // The editor holds ONE grid size for all frames, so decide it once
+      // (from the first frame's meta, else guessed) instead of resizing
+      // inside the loop — the old per-frame resize corrupted earlier frames.
+      let W, H;
+      if (widths && heights && Number.isFinite(widths[0]) && Number.isFinite(heights[0])){
+        W = widths[0]; H = heights[0];
+      } else {
+        [W,H] = guessWHFromTiles(cnts[0] ?? 0, gridWidth, gridHeight);
+      }
+      if (W !== gridWidth || H !== gridHeight) changeGridSize(W,H);
+
       for(let fi=0; fi<cnts.length; fi++){
         const tileOffset = offs[fi] ?? 0;
         const tileCount  = cnts[fi] ?? 0;
-
-        // Größe je Frame: bevorzugt Meta, sonst heuristisch
-        let W = gridWidth, H = gridHeight;
-        if (widths && heights && Number.isFinite(widths[fi]) && Number.isFinite(heights[fi])){
-          W = widths[fi]; H = heights[fi];
-        } else {
-          [W,H] = guessWHFromTiles(tileCount, gridWidth, gridHeight);
-        }
-        if (W !== gridWidth || H !== gridHeight) changeGridSize(W,H);
-
-        const g = decode2bppFrame(tilesBytes, tileOffset, tileCount, W, H, tileMap);
-
-        addFrame();
-        ensureFrameLayers(currentFrameIndex);
-        layersPerFrame[currentFrameIndex][getActiveLayerIndex()].grid = g;
-        composeFrame(currentFrameIndex);
+        const g = decode2bppFrame(tilesBytes, tileOffset, tileCount, gridWidth, gridHeight, tileMap);
+        appendImportedFrame(g);
       }
 
-      refreshFramesThumbnails(); refreshLayersUI(); render(); drawGBPreview();
+      finishImport(pristine);
     };
     reader.readAsText(file);
   });
